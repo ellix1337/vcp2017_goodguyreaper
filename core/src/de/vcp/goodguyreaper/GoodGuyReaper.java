@@ -19,9 +19,6 @@ import com.badlogic.gdx.physics.bullet.linearmath.btMotionState;
 import com.badlogic.gdx.utils.Array;
 
 public class GoodGuyReaper extends ApplicationAdapter implements InputProcessor {
-    //for bullet physics
-    private MyMotionState motionState;
-    private btRigidBody body;
 
     private PerspectiveCamera playerCamera;
     private ModelBatch modelBatch;
@@ -32,14 +29,13 @@ public class GoodGuyReaper extends ApplicationAdapter implements InputProcessor 
     private Environment environment;
     private AssetManager assets;
     private boolean isLoading;
-    //movement fields
-    private float factorMovement    = 5;
+
     //movement
-    // TODO: camera only atm, implement playermovement
     private boolean leftMove        = false;
     private boolean rightMove       = false;
     private boolean forwardMove     = false;
     private boolean backwardMove    = false;
+    //TODO: fix rotation
     private boolean rotateRight     = false;
     private boolean rotateLeft      = false;
 
@@ -327,20 +323,5 @@ public class GoodGuyReaper extends ApplicationAdapter implements InputProcessor 
     @Override
     public boolean scrolled(int amount) {
         return false;
-    }
-
-    //motion states if needed
-    static class MyMotionState extends btMotionState {
-        Matrix4 transform;
-
-        @Override
-        public void getWorldTransform(Matrix4 worldTrans){
-            worldTrans.set(transform);
-        }
-
-        @Override
-        public void setWorldTransform(Matrix4 worldTransform){
-            transform.set(worldTransform);
-        }
     }
 }
