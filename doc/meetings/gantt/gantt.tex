@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 \documentclass[landscape]{letter}
 \usepackage{pgfgantt}
 \begin{document}
@@ -118,4 +119,126 @@
 		\ganttbar{Animationen}{1}{14}
 	\end{ganttchart}
 
+=======
+\documentclass[landscape]{letter}
+\usepackage{pgfgantt}
+\begin{document}
+
+	\begin{ganttchart}[vgrid, hgrid, x unit=1cm, progress=today, today=14]{1}{14}
+		\gantttitle{09. April '18}{14} \\
+		\gantttitlelist[
+		title list options=%
+		{var=\y, evaluate=\y as \x%
+			using "\pgfcalendarweekdayshortname{\y}"}
+		]{4,5,6,0,1,2,3,4,5,6,0,1,2,3}{1} \\
+		\ganttgroup{Planung und Logik}{1}{14} \\
+		\ganttbar{Recherche}{1}{3} \\
+		\ganttbar{Hintergrund und Szenario}{4}{10} \\
+		\ganttbar{Zeitplan}{9}{14} \\
+		\ganttbar{Datenstrukturen und Unittests}{13}{14}
+	\end{ganttchart}
+
+
+	\begin{ganttchart}[vgrid, hgrid, x unit=1cm, progress=today, today=0]{1}{15}
+		\gantttitle{19. April '18}{15} \\
+		\gantttitlelist[
+		title list options=%
+		{var=\y, evaluate=\y as \x%
+			using "\pgfcalendarweekdayshortname{\y}"}
+		]{4,5,6,0,1,2,3,4,5,6,0,1,2,3}{1} \\
+		\ganttgroup{Spielfeld, Physik und Bewegung}{1}{15} \\
+		\ganttbar{Generierung des Spielfelds}{1}{5} \\
+		\ganttbar{Physik}{5}{7} \\
+		\ganttbar{Bewegung von Figuren}{8}{12} \\
+		\ganttbar{Texturen}{13}{14}
+	\end{ganttchart}
+
+	\begin{ganttchart}[vgrid, hgrid, x unit=1cm, progress=today, today=0]{1}{14}
+		\gantttitle{04. Mai '18}{14} \\
+		\gantttitlelist[
+		title list options=%
+		{var=\y, evaluate=\y as \x%
+			using "\pgfcalendarweekdayshortname{\y}"}
+		]{4,5,6,0,1,2,3,4,5,6,0,1,2,3}{1} \\
+		\ganttgroup{GUI}{1}{14} \\
+		\ganttbar{Graphic User Interface}{1}{12} \\
+		\ganttbar{Picking}{12}{13} \\
+		\ganttbar{Dummys}{13}{14}
+	\end{ganttchart}
+	
+	
+	\begin{ganttchart}[vgrid, hgrid, x unit=1cm, progress=today, today=0]{1}{14}
+		\gantttitle{18. Mai '18}{14} \\
+		\gantttitlelist[
+		title list options=%
+		{var=\y, evaluate=\y as \x%
+			using "\pgfcalendarweekdayshortname{\y}"}
+		]{4,5,6,0,1,2,3,4,5,6,0,1,2,3}{1} \\
+		\ganttgroup{Modular- und Automatisierung}{1}{14} \\
+		\ganttbar{Modularisierung}{1}{10} \\
+		\ganttbar{Automatisierung}{8}{10} \\
+		\ganttbar{Ghost Modus}{10}{14} \\
+		\ganttbar{Level Struktur}{1}{14}
+	\end{ganttchart}
+
+	\begin{ganttchart}[vgrid, hgrid, x unit=1cm, progress=today, today=0]{1}{14}
+		\gantttitle{01. Juni '18}{14} \\
+		\gantttitlelist[
+		title list options=%
+		{var=\y, evaluate=\y as \x%
+			using "\pgfcalendarweekdayshortname{\y}"}
+		]{4,5,6,0,1,2,3,4,5,6,0,1,2,3}{1} \\
+		\ganttgroup{Handel und Kampf}{1}{14} \\
+		\ganttbar{Reduktion der Trefferpunkte}{1}{2} \\
+		\ganttbar{Fallen}{2}{8} \\
+		\ganttbar{Gegner}{8}{11} \\
+		\ganttbar{Pick Ups \& Power Ups}{11}{12} \\
+		\ganttbar{Handelsstationen}{12}{14} 
+	\end{ganttchart}
+	
+	
+	\begin{ganttchart}[vgrid, hgrid, x unit=1cm, progress=today, today=0]{1}{14}
+		\gantttitle{15. Juni '18}{14} \\
+		\gantttitlelist[
+		title list options=%
+		{var=\y, evaluate=\y as \x%
+			using "\pgfcalendarweekdayshortname{\y}"}
+		]{4,5,6,0,1,2,3,4,5,6,0,1,2,3}{1} \\
+		\ganttgroup{Konfiguration}{1}{14} \\
+		\ganttbar{Spieler}{1}{5} \\
+		\ganttbar{Level}{6}{10}\\
+		\ganttbar{Persistierung}{11}{14}
+	\end{ganttchart}
+
+	\begin{ganttchart}[vgrid, hgrid, x unit=1cm, progress=today, today=0]{1}{14}
+		\gantttitle{29. Juni '18}{14} \\
+		\gantttitlelist[
+		title list options=%
+		{var=\y, evaluate=\y as \x%
+			using "\pgfcalendarweekdayshortname{\y}"}
+		]{4,5,6,0,1,2,3,4,5,6,0,1,2,3}{1} \\
+		\ganttgroup{Visuelle Spezialeffekte und Audio}{1}{14} \\
+		\ganttbar{Vorhandene visuelle Spezialeffekte}{1}{2} \\
+		\ganttbar{Eigene visuelle Spezialeffekte}{3}{10} \\
+		\ganttbar{Audio, Töne \& Sound}{11}{14}
+	\end{ganttchart}
+	
+	\begin{ganttchart}[vgrid, hgrid, x unit=1cm, progress=today, today=0]{1}{14}
+		\gantttitle{13. Juni '18}{14} \\
+		\gantttitlelist[
+		title list options=%
+		{var=\y, evaluate=\y as \x%
+			using "\pgfcalendarweekdayshortname{\y}"}
+		]{4,5,6,0,1,2,3,4,5,6,0,1,2,3}{1} \\
+		\ganttgroup{Weitere Features}{1}{14} \\
+		\ganttbar{Healthbar}{1}{2} \\
+		\ganttbar{Statistik}{2}{6} \\
+		\ganttbar{neue Level}{10}{14} \\
+		\ganttbar{Navigationshilfe}{1}{14} \\
+		\ganttbar{alternative Eingabegeräte}{8}{12} \\
+		\ganttbar{Tageszeiten}{6}{8} \\
+		\ganttbar{Animationen}{1}{14}
+	\end{ganttchart}
+
+>>>>>>> 779120ebc2f80e9992530239df12eedac52c3420
 \end{document}
