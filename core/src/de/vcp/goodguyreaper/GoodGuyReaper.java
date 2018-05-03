@@ -13,10 +13,13 @@ import com.badlogic.gdx.graphics.g3d.*;
 import com.badlogic.gdx.graphics.g3d.attributes.ColorAttribute;
 import com.badlogic.gdx.graphics.g3d.environment.DirectionalLight;
 import com.badlogic.gdx.graphics.g3d.utils.ModelBuilder;
+import com.badlogic.gdx.graphics.g3d.utils.shapebuilders.BoxShapeBuilder;
+import com.badlogic.gdx.math.MathUtils;
 import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.physics.bullet.Bullet;
 import com.badlogic.gdx.physics.bullet.collision.*;
 import com.badlogic.gdx.utils.Array;
+import com.badlogic.gdx.utils.ArrayMap;
 
 public class GoodGuyReaper extends ApplicationAdapter implements InputProcessor {
 
@@ -29,6 +32,8 @@ public class GoodGuyReaper extends ApplicationAdapter implements InputProcessor 
     private Environment environment;
     private AssetManager assets;
     private boolean isLoading;
+
+    ArrayMap<String, GameObject.Constructor> constructors;
 
     //movement
     private boolean leftMove = false;
@@ -57,7 +62,6 @@ public class GoodGuyReaper extends ApplicationAdapter implements InputProcessor 
     public void create() {
 
         Bullet.init();
-
         collisionConfig = new btDefaultCollisionConfiguration();
         dispatcher = new btCollisionDispatcher(collisionConfig);
 
@@ -65,20 +69,13 @@ public class GoodGuyReaper extends ApplicationAdapter implements InputProcessor 
         ballShape = new btSphereShape(0.5f);
         groundShape = new btBoxShape(new Vector3(2.5f, 0.5f, 2.5f));
 
+        playerCameraInit();
+        modelsInit();
+        constructorsInit();
 
-        //create playerCamera
-        playerCamera = new PerspectiveCamera(75, Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
-        playerCamera.position.set(0f, 10f, 10f);
-        playerCamera.lookAt(source);
-        playerCamera.near = 0.1f;
-        playerCamera.far = 100f;
+        Gdx.input.setInputProcessor(this);
 
         modelBatch = new ModelBatch();
-        modelBuilder = new ModelBuilder();
-
-        platformModel = modelBuilder.createBox(5f, 1f, 5f, new Material(ColorAttribute.createDiffuse(Color.CYAN)), VertexAttributes.Usage.Position | VertexAttributes.Usage.Normal);
-        platformInstance = new ModelInstance(platformModel, source);
-        modelInstances.add(platformInstance);
 
         //loading .obj files like described in https://xoppa.github.io/blog/loading-models-using-libgdx/
         //TODO: .obj files are good for testing but nothing more... you need to generate g3dj files from fbx https://github.com/libgdx/fbx-conv
@@ -90,13 +87,52 @@ public class GoodGuyReaper extends ApplicationAdapter implements InputProcessor 
         environment.set(new ColorAttribute(ColorAttribute.AmbientLight, 0.8f, 0.8f, 0.8f, 1f));
         environment.add(new DirectionalLight().set(0.8f, 0.8f, 0.8f, -1f, -0.8f, -0.2f));
 
-        Gdx.input.setInputProcessor(this);
-
         platformObject = new btCollisionObject();
         platformObject.setCollisionShape(groundShape);
         platformObject.setWorldTransform(platformInstance.transform);
     }
 
+    /**
+     * inits the models
+     */
+    private void modelsInit() {
+
+        modelBuilder = new ModelBuilder();
+        platformModel = modelBuilder.createBox(5f, 1f, 5f, new Material(ColorAttribute.createDiffuse(Color.CYAN)), VertexAttributes.Usage.Position | VertexAttributes.Usage.Normal);
+
+        platformInstance = new ModelInstance(platformModel, source);
+        modelInstances.add(platformInstance);
+        //TODO: remove - test purpose only
+        //modelInstances.add(new ModelInstance(platformModel, new Vector3(0f, 3f, 0f)));
+    }
+
+    /**
+     * inits constructors for every GameObject
+     */
+    private void constructorsInit() {
+        //fixme: doesnt work properly because tutorial implementation is deprecated and i dont want to use it therefore
+        constructors = new ArrayMap<String, GameObject.Constructor>(String.class, GameObject.Constructor.class);
+        constructors.put("platform", new GameObject.Constructor(platformModel, "platform", new btBoxShape(new Vector3(2.5f, 0.5f, 2.5f))));
+
+        GameObject obj = constructors.values[0].construct();
+        obj.transform.setToTranslation(0f,3f,0f);
+        modelInstances.add(obj);
+    }
+
+    /**
+     * inits default playercamera settings
+     */
+    private void playerCameraInit() {
+        playerCamera = new PerspectiveCamera(75, Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
+        playerCamera.position.set(0f, 10f, 10f);
+        playerCamera.lookAt(source);
+        playerCamera.near = 0.1f;
+        playerCamera.far = 100f;
+    }
+
+    /**
+     * assigns model values after loading process
+     */
     private void doneLoading() {
         playerModel = assets.get("core/assets/models/reaper/reaper.obj", Model.class);
         playerInstance = new ModelInstance(playerModel, 0f, 8f, 0f);
@@ -118,35 +154,7 @@ public class GoodGuyReaper extends ApplicationAdapter implements InputProcessor 
         Gdx.gl.glClearColor(0, 0, 0, 1);
         Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT | GL20.GL_DEPTH_BUFFER_BIT);
 
-        //factorMovementPositive += 5 * Gdx.graphics.getDeltaTime();
-        //factorMovementNegative -= 5 * Gdx.graphics.getDeltaTime();
-
-        if (leftMove) {
-            playerCamera.translate(-0.1f, 0f, 0f);
-            playerInstance.transform.translate(-0.1f, 0f, 0f);
-        }
-        if (rightMove) {
-            playerCamera.translate(0.1f, 0f, 0f);
-            playerInstance.transform.translate(0.1f, 0f, 0f);
-        }
-        if (forwardMove) {
-            playerCamera.translate(0f, 0f, -0.1f);
-            playerInstance.transform.translate(0f, 0f, -0.1f);
-        }
-        if (backwardMove) {
-            playerCamera.translate(0f, 0f, 0.1f);
-            playerInstance.transform.translate(0f, 0f, 0.1f);
-        }
-        //TODO: probably rotate only player/camera?
-        //disabled atm due to movement bugs
-        if (rotateLeft) {
-            //playerCamera.rotate(yAxis, -1f);
-            //playerInstance.transform.rotate(yAxis, 1f);
-        }
-        if (rotateRight) {
-            //playerCamera.rotate(yAxis, 1f);
-            //playerInstance.transform.rotate(yAxis, -1f);
-        }
+        checkMovement();
 
         //bullet engine test from tutorial: https://xoppa.github.io/blog/using-the-libgdx-3d-physics-bullet-wrapper-part1/
         final float delta = Math.min(1f / 30f, Gdx.graphics.getDeltaTime());
@@ -167,6 +175,46 @@ public class GoodGuyReaper extends ApplicationAdapter implements InputProcessor 
         modelBatch.end();
     }
 
+    /**
+     * checks if user input is triggering movement
+     */
+    private void checkMovement() {
+        if (leftMove) {
+            playerCamera.translate(-0.1f, 0f, 0f);
+            playerInstance.transform.translate(-0.1f, 0f, 0f);
+        }
+        if (rightMove) {
+            playerCamera.translate(0.1f, 0f, 0f);
+            playerInstance.transform.translate(0.1f, 0f, 0f);
+        }
+        if (forwardMove) {
+            playerCamera.translate(0f, 0f, -0.1f);
+            playerInstance.transform.translate(0f, 0f, -0.1f);
+        }
+        if (backwardMove) {
+            playerCamera.translate(0f, 0f, 0.1f);
+            playerInstance.transform.translate(0f, 0f, 0.1f);
+        }
+        //disabled atm due to movement bugs
+        //TODO: probably rotate only player/camera?
+        if (rotateLeft) {
+            //playerCamera.rotate(yAxis, -1f);
+            //playerInstance.transform.rotate(yAxis, 1f);
+        }
+        if (rotateRight) {
+            //playerCamera.rotate(yAxis, 1f);
+            //playerInstance.transform.rotate(yAxis, -1f);
+        }
+    }
+
+    /**
+     * Collision detection between two objects, as shown in
+     * https://xoppa.github.io/blog/using-the-libgdx-3d-physics-bullet-wrapper-part1/ tutorial but with small adjustments
+     *
+     * @param obj0 first object to check collision
+     * @param obj1 second object to check collision
+     * @return if they are colliding
+     */
     private boolean checkCollision(btCollisionObject obj0, btCollisionObject obj1) {
         CollisionObjectWrapper co0 = new CollisionObjectWrapper(obj0);
         CollisionObjectWrapper co1 = new CollisionObjectWrapper(obj1);
