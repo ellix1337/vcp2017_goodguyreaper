@@ -5,17 +5,17 @@ import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
 import com.badlogic.gdx.InputProcessor;
 import com.badlogic.gdx.assets.AssetManager;
-import com.badlogic.gdx.graphics.*;
+import com.badlogic.gdx.graphics.Color;
+import com.badlogic.gdx.graphics.GL20;
+import com.badlogic.gdx.graphics.PerspectiveCamera;
+import com.badlogic.gdx.graphics.VertexAttributes;
 import com.badlogic.gdx.graphics.g3d.*;
 import com.badlogic.gdx.graphics.g3d.attributes.ColorAttribute;
 import com.badlogic.gdx.graphics.g3d.environment.DirectionalLight;
 import com.badlogic.gdx.graphics.g3d.utils.ModelBuilder;
-import com.badlogic.gdx.math.Matrix4;
 import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.physics.bullet.Bullet;
 import com.badlogic.gdx.physics.bullet.collision.*;
-import com.badlogic.gdx.physics.bullet.dynamics.btRigidBody;
-import com.badlogic.gdx.physics.bullet.linearmath.btMotionState;
 import com.badlogic.gdx.utils.Array;
 
 public class GoodGuyReaper extends ApplicationAdapter implements InputProcessor {
@@ -31,16 +31,16 @@ public class GoodGuyReaper extends ApplicationAdapter implements InputProcessor 
     private boolean isLoading;
 
     //movement
-    private boolean leftMove        = false;
-    private boolean rightMove       = false;
-    private boolean forwardMove     = false;
-    private boolean backwardMove    = false;
+    private boolean leftMove = false;
+    private boolean rightMove = false;
+    private boolean forwardMove = false;
+    private boolean backwardMove = false;
     //TODO: fix rotation
-    private boolean rotateRight     = false;
-    private boolean rotateLeft      = false;
+    private boolean rotateRight = false;
+    private boolean rotateLeft = false;
 
-    private Vector3 source          = new Vector3(0f,0f,0f);
-    private Vector3 yAxis           = new Vector3(0f,1f,0f);
+    private Vector3 source = new Vector3(0f, 0f, 0f);
+    private Vector3 yAxis = new Vector3(0f, 1f, 0f);
 
     private boolean collision;
     private ModelInstance playerInstance;
@@ -116,26 +116,26 @@ public class GoodGuyReaper extends ApplicationAdapter implements InputProcessor 
         if (isLoading && assets.update())
             doneLoading();
         Gdx.gl.glClearColor(0, 0, 0, 1);
-        Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT|GL20.GL_DEPTH_BUFFER_BIT);
+        Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT | GL20.GL_DEPTH_BUFFER_BIT);
 
         //factorMovementPositive += 5 * Gdx.graphics.getDeltaTime();
         //factorMovementNegative -= 5 * Gdx.graphics.getDeltaTime();
 
         if (leftMove) {
-            playerCamera.translate(-0.1f, 0f,0f);
-            playerInstance.transform.translate(-0.1f, 0f,0f);
+            playerCamera.translate(-0.1f, 0f, 0f);
+            playerInstance.transform.translate(-0.1f, 0f, 0f);
         }
         if (rightMove) {
             playerCamera.translate(0.1f, 0f, 0f);
-            playerInstance.transform.translate(0.1f, 0f,0f);
+            playerInstance.transform.translate(0.1f, 0f, 0f);
         }
         if (forwardMove) {
             playerCamera.translate(0f, 0f, -0.1f);
-            playerInstance.transform.translate(0f, 0f,-0.1f);
+            playerInstance.transform.translate(0f, 0f, -0.1f);
         }
         if (backwardMove) {
             playerCamera.translate(0f, 0f, 0.1f);
-            playerInstance.transform.translate(0f, 0f,0.1f);
+            playerInstance.transform.translate(0f, 0f, 0.1f);
         }
         //TODO: probably rotate only player/camera?
         //disabled atm due to movement bugs
@@ -149,7 +149,7 @@ public class GoodGuyReaper extends ApplicationAdapter implements InputProcessor 
         }
 
         //bullet engine test from tutorial: https://xoppa.github.io/blog/using-the-libgdx-3d-physics-bullet-wrapper-part1/
-        final float delta = Math.min(1f/30f, Gdx.graphics.getDeltaTime());
+        final float delta = Math.min(1f / 30f, Gdx.graphics.getDeltaTime());
 
         if (!collision) {
             if (playerInstance != null) {
@@ -205,30 +205,33 @@ public class GoodGuyReaper extends ApplicationAdapter implements InputProcessor 
         assets.dispose();
     }
 
-    public void setLeftMove(boolean b)
-    {
-        if(rightMove && b) rightMove = false;
+    public void setLeftMove(boolean b) {
+        if (rightMove && b) rightMove = false;
         leftMove = b;
     }
-    public void setRightMove(boolean b)
-    {
-        if(leftMove && b) leftMove = false;
+
+    public void setRightMove(boolean b) {
+        if (leftMove && b) leftMove = false;
         rightMove = b;
     }
+
     private void setForwardMove(boolean b) {
-        if(forwardMove && b) forwardMove = false;
+        if (forwardMove && b) forwardMove = false;
         forwardMove = b;
     }
+
     private void setBackwardMove(boolean b) {
-        if(backwardMove && b) backwardMove = false;
+        if (backwardMove && b) backwardMove = false;
         backwardMove = b;
     }
+
     private void setRotateLeft(boolean b) {
-        if(rotateLeft && b) rotateLeft = false;
+        if (rotateLeft && b) rotateLeft = false;
         rotateLeft = b;
     }
+
     private void setRotateRight(boolean b) {
-        if(rotateRight && b) rotateRight = false;
+        if (rotateRight && b) rotateRight = false;
         rotateRight = b;
     }
 
@@ -236,29 +239,33 @@ public class GoodGuyReaper extends ApplicationAdapter implements InputProcessor 
     public boolean keyDown(int keycode) {
 
         switch (keycode) {
-            case Input.Keys.LEFT: case Input.Keys.A:
+            case Input.Keys.LEFT:
+            case Input.Keys.A:
                 setLeftMove(true);
-                Gdx.app.debug("MOVEMENT","started - left");
+                Gdx.app.debug("MOVEMENT", "started - left");
                 break;
-            case Input.Keys.RIGHT: case Input.Keys.D:
+            case Input.Keys.RIGHT:
+            case Input.Keys.D:
                 setRightMove(true);
-                Gdx.app.debug("MOVEMENT","started - right");
+                Gdx.app.debug("MOVEMENT", "started - right");
                 break;
-            case Input.Keys.UP: case Input.Keys.W:
+            case Input.Keys.UP:
+            case Input.Keys.W:
                 setForwardMove(true);
-                Gdx.app.debug("MOVEMENT","started - forward");
+                Gdx.app.debug("MOVEMENT", "started - forward");
                 break;
-            case Input.Keys.DOWN: case Input.Keys.S:
+            case Input.Keys.DOWN:
+            case Input.Keys.S:
                 setBackwardMove(true);
-                Gdx.app.debug("MOVEMENT","started - backward");
+                Gdx.app.debug("MOVEMENT", "started - backward");
                 break;
             case Input.Keys.Q:
                 setRotateLeft(true);
-                Gdx.app.debug("ROTATE","started - left");
+                Gdx.app.debug("ROTATE", "started - left");
                 break;
             case Input.Keys.E:
                 setRotateRight(true);
-                Gdx.app.debug("ROTATE","started - right");
+                Gdx.app.debug("ROTATE", "started - right");
                 break;
         }
         return true;
@@ -267,29 +274,33 @@ public class GoodGuyReaper extends ApplicationAdapter implements InputProcessor 
     @Override
     public boolean keyUp(int keycode) {
         switch (keycode) {
-            case Input.Keys.LEFT: case Input.Keys.A:
+            case Input.Keys.LEFT:
+            case Input.Keys.A:
                 setLeftMove(false);
-                Gdx.app.debug("MOVEMENT","stopped - left");
+                Gdx.app.debug("MOVEMENT", "stopped - left");
                 break;
-            case Input.Keys.RIGHT: case Input.Keys.D:
+            case Input.Keys.RIGHT:
+            case Input.Keys.D:
                 setRightMove(false);
-                Gdx.app.debug("MOVEMENT","stopped - right");
+                Gdx.app.debug("MOVEMENT", "stopped - right");
                 break;
-            case Input.Keys.UP: case Input.Keys.W:
+            case Input.Keys.UP:
+            case Input.Keys.W:
                 setForwardMove(false);
-                Gdx.app.debug("MOVEMENT","stopped - forward");
+                Gdx.app.debug("MOVEMENT", "stopped - forward");
                 break;
-            case Input.Keys.DOWN: case Input.Keys.S:
+            case Input.Keys.DOWN:
+            case Input.Keys.S:
                 setBackwardMove(false);
-                Gdx.app.debug("MOVEMENT","stopped - backward");
+                Gdx.app.debug("MOVEMENT", "stopped - backward");
                 break;
             case Input.Keys.Q:
                 setRotateLeft(false);
-                Gdx.app.debug("ROTATE","stopped - left");
+                Gdx.app.debug("ROTATE", "stopped - left");
                 break;
             case Input.Keys.E:
                 setRotateRight(false);
-                Gdx.app.debug("ROTATE","stopped - right");
+                Gdx.app.debug("ROTATE", "stopped - right");
                 break;
         }
         return true;
