@@ -1,9 +1,6 @@
 package de.vcp.goodguyreaper;
 
-import com.badlogic.gdx.ApplicationAdapter;
-import com.badlogic.gdx.Gdx;
-import com.badlogic.gdx.Input;
-import com.badlogic.gdx.InputProcessor;
+import com.badlogic.gdx.*;
 import com.badlogic.gdx.assets.AssetManager;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.GL20;
@@ -29,6 +26,7 @@ public class GoodGuyReaper extends ApplicationAdapter implements InputProcessor 
     private Array<ModelInstance> modelInstances = new Array<ModelInstance>();
     private Model platformModel;
     private Model playerModel;
+    private Model heartModel;
     private Environment environment;
     private AssetManager assets;
     private boolean isLoading;
@@ -40,7 +38,7 @@ public class GoodGuyReaper extends ApplicationAdapter implements InputProcessor 
     private boolean rightMove = false;
     private boolean forwardMove = false;
     private boolean backwardMove = false;
-    //TODO: fix rotation
+    //TODO: fix rotation - maybe need to use trn() method instead of translate()
     private boolean rotateRight = false;
     private boolean rotateLeft = false;
 
@@ -50,13 +48,17 @@ public class GoodGuyReaper extends ApplicationAdapter implements InputProcessor 
     private boolean collision;
     private ModelInstance playerInstance;
     private ModelInstance platformInstance;
+    private ModelInstance heartInstance;
     private btCollisionShape ballShape;
     private btCollisionShape groundShape;
     private btCollisionObject platformObject;
     private btCollisionObject playerObject;
+    private btCollisionObject heartObject;
 
     private btDefaultCollisionConfiguration collisionConfig;
     private btDispatcher dispatcher;
+
+    private MyContactListener contactListener;
 
     @Override
     public void create() {
@@ -64,10 +66,11 @@ public class GoodGuyReaper extends ApplicationAdapter implements InputProcessor 
         Bullet.init();
         collisionConfig = new btDefaultCollisionConfiguration();
         dispatcher = new btCollisionDispatcher(collisionConfig);
+        contactListener = new MyContactListener();
 
         //init collision shapes
         ballShape = new btSphereShape(0.5f);
-        groundShape = new btBoxShape(new Vector3(2.5f, 0.5f, 2.5f));
+        groundShape = new btBoxShape(new Vector3(5f, 0.5f, 5f));
 
         playerCameraInit();
         modelsInit();
@@ -78,9 +81,10 @@ public class GoodGuyReaper extends ApplicationAdapter implements InputProcessor 
         modelBatch = new ModelBatch();
 
         //loading .obj files like described in https://xoppa.github.io/blog/loading-models-using-libgdx/
-        //TODO: .obj files are good for testing but nothing more... you need to generate g3dj files from fbx https://github.com/libgdx/fbx-conv
+        //TODO: .obj files are good for "testing" but nothing more... you need to generate g3dj files from fbx https://github.com/libgdx/fbx-conv
         assets = new AssetManager();
         assets.load("core/assets/models/reaper/reaper.obj", Model.class);
+        assets.load("core/assets/models/heart/Heart.obj", Model.class);
         isLoading = true;
 
         environment = new Environment();
@@ -98,12 +102,29 @@ public class GoodGuyReaper extends ApplicationAdapter implements InputProcessor 
     private void modelsInit() {
 
         modelBuilder = new ModelBuilder();
-        platformModel = modelBuilder.createBox(5f, 1f, 5f, new Material(ColorAttribute.createDiffuse(Color.CYAN)), VertexAttributes.Usage.Position | VertexAttributes.Usage.Normal);
+        platformModel = modelBuilder.createBox(10f, 1f, 10f, new Material(ColorAttribute.createDiffuse(Color.CYAN)), VertexAttributes.Usage.Position | VertexAttributes.Usage.Normal);
 
         platformInstance = new ModelInstance(platformModel, source);
         modelInstances.add(platformInstance);
+
         //TODO: remove - test purpose only
         //modelInstances.add(new ModelInstance(platformModel, new Vector3(0f, 3f, 0f)));
+
+        for (int x=-12; x <= 12; x += 12) {
+            for (int z=-12; z <= 12; z += 12) {
+                ModelInstance instance = new ModelInstance(platformModel, x, 0, z);
+                if (x == 0) {
+                    if (z != 0) {
+                        instance.model.materials.add(new Material(ColorAttribute.createDiffuse(Color.GOLDENROD)));
+                    }
+                } else {
+                    if (z!= 0) {
+                        instance.model.materials.add(new Material(ColorAttribute.createAmbient(Color.PURPLE)));
+                    }
+                }
+                modelInstances.add(instance);
+            }
+        }
     }
 
     /**
@@ -135,14 +156,23 @@ public class GoodGuyReaper extends ApplicationAdapter implements InputProcessor 
      */
     private void doneLoading() {
         playerModel = assets.get("core/assets/models/reaper/reaper.obj", Model.class);
-        playerInstance = new ModelInstance(playerModel, 0f, 8f, 0f);
-
-        modelInstances.add(playerInstance);
-
+        playerInstance = new ModelInstance(playerModel, 0f, 4f, 0f);
+        //fixme: dont scale playermodel it will break collision sphere
+//        playerInstance.transform.scale(2f, 2f, 2f);
         playerObject = new btCollisionObject();
         //obtain collision sphere from model nodes
         playerObject.setCollisionShape(Bullet.obtainStaticNodeShape(playerModel.nodes));
         playerObject.setWorldTransform(playerInstance.transform);
+
+        heartModel = assets.get("core/assets/models/heart/Heart.obj", Model.class);
+        heartInstance = new ModelInstance(heartModel, 2f, 1f, 2);
+        heartInstance.transform.scale(0.003f, 0.003f, 0.003f);
+        heartObject = new btCollisionObject();
+        heartObject.setCollisionShape(ballShape);
+        heartObject.setWorldTransform(heartInstance.transform);
+
+        modelInstances.add(heartInstance);
+        modelInstances.add(playerInstance);
 
         isLoading = false;
     }
@@ -153,20 +183,30 @@ public class GoodGuyReaper extends ApplicationAdapter implements InputProcessor 
             doneLoading();
         Gdx.gl.glClearColor(0, 0, 0, 1);
         Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT | GL20.GL_DEPTH_BUFFER_BIT);
-
-        checkMovement();
+        if (playerInstance != null) {
+            checkMovement();
+        }
 
         //bullet engine test from tutorial: https://xoppa.github.io/blog/using-the-libgdx-3d-physics-bullet-wrapper-part1/
         final float delta = Math.min(1f / 30f, Gdx.graphics.getDeltaTime());
 
         if (!collision) {
             if (playerInstance != null) {
-                playerInstance.transform.translate(0f, -delta, 0f);
+                playerInstance.transform.translate(0f, -delta*2, 0f);
                 playerObject.setWorldTransform(playerInstance.transform);
             }
         }
         if (playerObject != null) {
             collision = checkCollision(playerObject, platformObject);
+            //fixme: get to work
+            //this should remove the heartInstance and perform PickUp action
+            boolean pickUp = checkCollision(playerObject, heartObject);
+            if (pickUp) {
+                if (heartInstance!=null) {
+                    heartInstance = null;
+                    //performHeartPickUp();
+                }
+            }
         }
 
         playerCamera.update();
@@ -251,6 +291,7 @@ public class GoodGuyReaper extends ApplicationAdapter implements InputProcessor 
         platformModel.dispose();
         modelBatch.dispose();
         assets.dispose();
+        contactListener.dispose();
     }
 
     public void setLeftMove(boolean b) {
@@ -382,5 +423,14 @@ public class GoodGuyReaper extends ApplicationAdapter implements InputProcessor 
     @Override
     public boolean scrolled(int amount) {
         return false;
+    }
+
+    class MyContactListener extends ContactListener {
+        @Override
+        public boolean onContactAdded(btManifoldPoint cp, btCollisionObjectWrapper colObj0Wrap, int partId0, int index0, btCollisionObjectWrapper colObj1Wrap, int partId1, int index1) {
+//            modelInstances.get(colObj0Wrap.getCollisionObject().getUserValue()).moving = false;
+//            modelInstances.get(colObj1Wrap.getCollisionObject().getUserValue()).moving = false;
+            return true;
+        }
     }
 }
