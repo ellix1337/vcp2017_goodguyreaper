@@ -2,46 +2,55 @@ package de.vcp.goodguyreaper;
 
 import com.badlogic.gdx.graphics.g3d.Model;
 import com.badlogic.gdx.graphics.g3d.ModelInstance;
-import com.badlogic.gdx.physics.bullet.collision.btCollisionObject;
+import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.physics.bullet.collision.btCollisionShape;
+import com.badlogic.gdx.physics.bullet.dynamics.btRigidBody;
 import com.badlogic.gdx.utils.Disposable;
 
 public class GameObject extends ModelInstance implements Disposable {
+    public final btRigidBody body;
+    public final GoodGuyReaper.MyMotionState motionState;
 
-    public final btCollisionObject body;
-    public boolean moving;
-
-    public GameObject(Model model, String node, btCollisionShape shape) {
+    public GameObject(Model model, String node, btRigidBody.btRigidBodyConstructionInfo constructionInfo) {
         super(model, node);
-        body = new btCollisionObject();
-        body.setCollisionShape(shape);
-        body.setWorldTransform(this.transform);
+        motionState = new GoodGuyReaper.MyMotionState();
+        motionState.transform = transform;
+        body = new btRigidBody(constructionInfo);
+        body.setMotionState(motionState);
     }
 
     @Override
     public void dispose() {
         body.dispose();
+        motionState.dispose();
     }
 
     static class Constructor implements Disposable {
-
         public final Model model;
         public final String node;
         public final btCollisionShape shape;
+        public final btRigidBody.btRigidBodyConstructionInfo constructionInfo;
+        private static Vector3 localInertia = new Vector3();
 
-        public Constructor(Model model, String node, btCollisionShape shape) {
+        public Constructor(Model model, String node, btCollisionShape shape, float mass) {
             this.model = model;
             this.node = node;
             this.shape = shape;
+            if (mass > 0f)
+                shape.calculateLocalInertia(mass, localInertia);
+            else
+                localInertia.set(0, 0, 0);
+            this.constructionInfo = new btRigidBody.btRigidBodyConstructionInfo(mass, null, shape, localInertia);
+        }
+
+        public GameObject construct() {
+            return new GameObject(model, node, constructionInfo);
         }
 
         @Override
         public void dispose() {
             shape.dispose();
-        }
-
-        public GameObject construct() {
-            return new GameObject(model, node, shape);
+            constructionInfo.dispose();
         }
     }
 }

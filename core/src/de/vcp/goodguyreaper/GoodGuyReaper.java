@@ -1,6 +1,9 @@
 package de.vcp.goodguyreaper;
 
-import com.badlogic.gdx.*;
+import com.badlogic.gdx.ApplicationAdapter;
+import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.Input;
+import com.badlogic.gdx.InputProcessor;
 import com.badlogic.gdx.assets.AssetManager;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.GL20;
@@ -10,11 +13,15 @@ import com.badlogic.gdx.graphics.g3d.*;
 import com.badlogic.gdx.graphics.g3d.attributes.ColorAttribute;
 import com.badlogic.gdx.graphics.g3d.environment.DirectionalLight;
 import com.badlogic.gdx.graphics.g3d.utils.ModelBuilder;
-import com.badlogic.gdx.graphics.g3d.utils.shapebuilders.BoxShapeBuilder;
-import com.badlogic.gdx.math.MathUtils;
+import com.badlogic.gdx.math.Matrix4;
 import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.physics.bullet.Bullet;
 import com.badlogic.gdx.physics.bullet.collision.*;
+import com.badlogic.gdx.physics.bullet.dynamics.btConstraintSolver;
+import com.badlogic.gdx.physics.bullet.dynamics.btDiscreteDynamicsWorld;
+import com.badlogic.gdx.physics.bullet.dynamics.btDynamicsWorld;
+import com.badlogic.gdx.physics.bullet.dynamics.btSequentialImpulseConstraintSolver;
+import com.badlogic.gdx.physics.bullet.linearmath.btMotionState;
 import com.badlogic.gdx.utils.Array;
 import com.badlogic.gdx.utils.ArrayMap;
 
@@ -49,8 +56,6 @@ public class GoodGuyReaper extends ApplicationAdapter implements InputProcessor 
     private ModelInstance playerInstance;
     private ModelInstance platformInstance;
     private ModelInstance heartInstance;
-    private btCollisionShape ballShape;
-    private btCollisionShape groundShape;
     private btCollisionObject platformObject;
     private btCollisionObject playerObject;
     private btCollisionObject heartObject;
@@ -58,19 +63,26 @@ public class GoodGuyReaper extends ApplicationAdapter implements InputProcessor 
     private btDefaultCollisionConfiguration collisionConfig;
     private btDispatcher dispatcher;
 
-    private MyContactListener contactListener;
+    private btBroadphaseInterface broadphase;
+    private btDynamicsWorld dynamicsWorld;
 
+    private MyContactListener contactListener;
+    private btConstraintSolver constraintSolver;
+
+    //TODO: add rigidBody for Collision
     @Override
     public void create() {
 
         Bullet.init();
+
         collisionConfig = new btDefaultCollisionConfiguration();
         dispatcher = new btCollisionDispatcher(collisionConfig);
-        contactListener = new MyContactListener();
+        broadphase = new btDbvtBroadphase();
+        constraintSolver = new btSequentialImpulseConstraintSolver();
+        dynamicsWorld = new btDiscreteDynamicsWorld(dispatcher, broadphase, constraintSolver, collisionConfig);
+        dynamicsWorld.setGravity(new Vector3(0, -10f, 0));
 
-        //init collision shapes
-        ballShape = new btSphereShape(0.5f);
-        groundShape = new btBoxShape(new Vector3(5f, 0.5f, 5f));
+        contactListener = new MyContactListener();
 
         playerCameraInit();
         modelsInit();
@@ -78,47 +90,60 @@ public class GoodGuyReaper extends ApplicationAdapter implements InputProcessor 
 
         Gdx.input.setInputProcessor(this);
 
-        modelBatch = new ModelBatch();
+        loadAssets();
+        environmentInit();
+    }
 
+    private void environmentInit() {
+        environment = new Environment();
+        environment.set(new ColorAttribute(ColorAttribute.AmbientLight, 0.8f, 0.8f, 0.8f, 1f));
+        environment.add(new DirectionalLight().set(0.8f, 0.8f, 0.8f, -1f, -0.8f, -0.2f));
+    }
+
+    private void loadAssets() {
         //loading .obj files like described in https://xoppa.github.io/blog/loading-models-using-libgdx/
         //TODO: .obj files are good for "testing" but nothing more... you need to generate g3dj files from fbx https://github.com/libgdx/fbx-conv
         assets = new AssetManager();
         assets.load("core/assets/models/reaper/reaper.obj", Model.class);
         assets.load("core/assets/models/heart/Heart.obj", Model.class);
         isLoading = true;
-
-        environment = new Environment();
-        environment.set(new ColorAttribute(ColorAttribute.AmbientLight, 0.8f, 0.8f, 0.8f, 1f));
-        environment.add(new DirectionalLight().set(0.8f, 0.8f, 0.8f, -1f, -0.8f, -0.2f));
-
-        platformObject = new btCollisionObject();
-        platformObject.setCollisionShape(groundShape);
-        platformObject.setWorldTransform(platformInstance.transform);
     }
 
     /**
      * inits the models
      */
     private void modelsInit() {
-
+        modelBatch = new ModelBatch();
         modelBuilder = new ModelBuilder();
-        platformModel = modelBuilder.createBox(10f, 1f, 10f, new Material(ColorAttribute.createDiffuse(Color.CYAN)), VertexAttributes.Usage.Position | VertexAttributes.Usage.Normal);
 
+        platformModel = modelBuilder.createBox(10f, 1f, 10f, new Material(ColorAttribute.createDiffuse(Color.CYAN)), VertexAttributes.Usage.Position | VertexAttributes.Usage.Normal);
+        platformObject = new btCollisionObject();
+        platformObject.setCollisionShape(new btBoxShape(new Vector3(5f, 0.5f, 5f)));
+        platformObject.setWorldTransform(platformInstance.transform);
         platformInstance = new ModelInstance(platformModel, source);
         modelInstances.add(platformInstance);
+
+        //TODO: add flags, activationstate, rigidBody to ground?
+//        GameObject object = constructors.get("ground").construct();
+//        object.body.setCollisionFlags(object.body.getCollisionFlags() | btCollisionObject.CollisionFlags.CF_KINEMATIC_OBJECT);
+//        instances.add(object);
+//        dynamicsWorld.addRigidBody(object.body);
+//        object.body.setContactCallbackFlag(GROUND_FLAG);
+//        object.body.setContactCallbackFilter(0);
+//        object.body.setActivationState(Collision.DISABLE_DEACTIVATION);
 
         //TODO: remove - test purpose only
         //modelInstances.add(new ModelInstance(platformModel, new Vector3(0f, 3f, 0f)));
 
-        for (int x=-12; x <= 12; x += 12) {
-            for (int z=-12; z <= 12; z += 12) {
+        for (int x = -12; x <= 12; x += 12) {
+            for (int z = -12; z <= 12; z += 12) {
                 ModelInstance instance = new ModelInstance(platformModel, x, 0, z);
                 if (x == 0) {
                     if (z != 0) {
                         instance.model.materials.add(new Material(ColorAttribute.createDiffuse(Color.GOLDENROD)));
                     }
                 } else {
-                    if (z!= 0) {
+                    if (z != 0) {
                         instance.model.materials.add(new Material(ColorAttribute.createAmbient(Color.PURPLE)));
                     }
                 }
@@ -133,10 +158,10 @@ public class GoodGuyReaper extends ApplicationAdapter implements InputProcessor 
     private void constructorsInit() {
         //fixme: doesnt work properly because tutorial implementation is deprecated and i dont want to use it therefore
         constructors = new ArrayMap<String, GameObject.Constructor>(String.class, GameObject.Constructor.class);
-        constructors.put("platform", new GameObject.Constructor(platformModel, "platform", new btBoxShape(new Vector3(2.5f, 0.5f, 2.5f))));
+        constructors.put("platform", new GameObject.Constructor(platformModel, "platform", new btBoxShape(new Vector3(2.5f, 0.5f, 2.5f)), 1f));
 
         GameObject obj = constructors.values[0].construct();
-        obj.transform.setToTranslation(0f,3f,0f);
+        obj.transform.setToTranslation(0f, 3f, 0f);
         modelInstances.add(obj);
     }
 
@@ -168,7 +193,7 @@ public class GoodGuyReaper extends ApplicationAdapter implements InputProcessor 
         heartInstance = new ModelInstance(heartModel, 2f, 1f, 2);
         heartInstance.transform.scale(0.003f, 0.003f, 0.003f);
         heartObject = new btCollisionObject();
-        heartObject.setCollisionShape(ballShape);
+        heartObject.setCollisionShape(new btSphereShape(0.5f));
         heartObject.setWorldTransform(heartInstance.transform);
 
         modelInstances.add(heartInstance);
@@ -187,12 +212,14 @@ public class GoodGuyReaper extends ApplicationAdapter implements InputProcessor 
             checkMovement();
         }
 
+        //TODO: remove or change the checkcollision method, since it's not longer needed for CollisionDetection
+
         //bullet engine test from tutorial: https://xoppa.github.io/blog/using-the-libgdx-3d-physics-bullet-wrapper-part1/
         final float delta = Math.min(1f / 30f, Gdx.graphics.getDeltaTime());
 
         if (!collision) {
             if (playerInstance != null) {
-                playerInstance.transform.translate(0f, -delta*2, 0f);
+                playerInstance.transform.translate(0f, -delta * 2, 0f);
                 playerObject.setWorldTransform(playerInstance.transform);
             }
         }
@@ -202,7 +229,7 @@ public class GoodGuyReaper extends ApplicationAdapter implements InputProcessor 
             //this should remove the heartInstance and perform PickUp action
             boolean pickUp = checkCollision(playerObject, heartObject);
             if (pickUp) {
-                if (heartInstance!=null) {
+                if (heartInstance != null) {
                     heartInstance = null;
                     //performHeartPickUp();
                 }
@@ -280,18 +307,16 @@ public class GoodGuyReaper extends ApplicationAdapter implements InputProcessor 
     @Override
     public void dispose() {
         platformObject.dispose();
-        groundShape.dispose();
-
         playerObject.dispose();
-        ballShape.dispose();
-
         dispatcher.dispose();
         collisionConfig.dispose();
-
         platformModel.dispose();
         modelBatch.dispose();
         assets.dispose();
         contactListener.dispose();
+        dynamicsWorld.dispose();
+        constraintSolver.dispose();
+        broadphase.dispose();
     }
 
     public void setLeftMove(boolean b) {
@@ -425,12 +450,27 @@ public class GoodGuyReaper extends ApplicationAdapter implements InputProcessor 
         return false;
     }
 
+    static class MyMotionState extends btMotionState {
+        Matrix4 transform;
+
+        @Override
+        public void getWorldTransform(Matrix4 worldTrans) {
+            worldTrans.set(transform);
+        }
+
+        @Override
+        public void setWorldTransform(Matrix4 worldTrans) {
+            transform.set(worldTrans);
+        }
+    }
+
     class MyContactListener extends ContactListener {
         @Override
         public boolean onContactAdded(btManifoldPoint cp, btCollisionObjectWrapper colObj0Wrap, int partId0, int index0, btCollisionObjectWrapper colObj1Wrap, int partId1, int index1) {
 //            modelInstances.get(colObj0Wrap.getCollisionObject().getUserValue()).moving = false;
 //            modelInstances.get(colObj1Wrap.getCollisionObject().getUserValue()).moving = false;
-            return true;
+//            return true;
+            return false;
         }
     }
 }
